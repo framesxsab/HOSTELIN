@@ -6,6 +6,9 @@ __pycache__/
 # Backend caches
 backend/__pycache__/
 backend/app/__pycache__/
+backend/*.db
+backend/*.db-*
+backend/*.sqlite
 
 # Node / Next.js
 node_modules/

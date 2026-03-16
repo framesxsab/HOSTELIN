@@ -1,7 +1,11 @@
+import os
+
 from fastapi import FastAPI
 from fastapi import HTTPException
+from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
 
+from .database import init_database
 from .schemas import (
     BunkyChatRequest,
     BunkyChatResponse,
@@ -46,6 +50,19 @@ app.add_middleware(
 )
 
 
+@app.on_event("startup")
+def startup_event() -> None:
+    init_database()
+
+
+@app.middleware("http")
+async def inject_user_context(request: Request, call_next):
+    default_user = os.getenv("HOSTELOS_DEFAULT_USER", "default_user")
+    request.state.user_id = request.headers.get("X-User-ID", default_user)
+    response = await call_next(request)
+    return response
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -57,8 +74,8 @@ def dashboard_summary() -> DashboardSummary:
 
 
 @app.post("/api/bunky/chat", response_model=BunkyChatResponse)
-def bunky_chat(payload: BunkyChatRequest) -> BunkyChatResponse:
-    intent, tool_name, message = route_command(payload.command)
+def bunky_chat(payload: BunkyChatRequest, request: Request) -> BunkyChatResponse:
+    intent, tool_name, message = route_command(payload.command, user_id=request.state.user_id)
     return BunkyChatResponse(intent=intent, result=ToolResult(tool=tool_name, message=message))
 
 
@@ -73,8 +90,8 @@ def get_fixit_tickets() -> list[FixItTicket]:
 
 
 @app.post("/api/fixit/tickets", response_model=FixItTicket)
-def post_fixit_ticket(payload: FixItCreateRequest) -> FixItTicket:
-    return FixItTicket(**create_fixit_ticket(payload.title))
+def post_fixit_ticket(payload: FixItCreateRequest, request: Request) -> FixItTicket:
+    return FixItTicket(**create_fixit_ticket(payload.title, user_id=request.state.user_id))
 
 
 @app.get("/api/roomtab/summary", response_model=RoomTabSummary)
@@ -83,12 +100,13 @@ def roomtab_summary() -> RoomTabSummary:
 
 
 @app.post("/api/roomtab/expenses", response_model=RoomTabExpense)
-def roomtab_add_expense(payload: RoomTabCreateExpenseRequest) -> RoomTabExpense:
+def roomtab_add_expense(payload: RoomTabCreateExpenseRequest, request: Request) -> RoomTabExpense:
     expense = create_roomtab_expense(
         title=payload.title,
         payer=payload.payer,
         total=payload.total,
         share=payload.share,
+        user_id=request.state.user_id,
     )
     return RoomTabExpense(**expense)
 
@@ -99,13 +117,21 @@ def parcelping_list() -> list[ParcelItem]:
 
 
 @app.post("/api/parcelping/parcels", response_model=ParcelItem)
-def parcelping_create(payload: ParcelCreateRequest) -> ParcelItem:
-    return ParcelItem(**create_parcel(payload.vendor, payload.location, payload.status, payload.eta))
+def parcelping_create(payload: ParcelCreateRequest, request: Request) -> ParcelItem:
+    return ParcelItem(
+        **create_parcel(
+            payload.vendor,
+            payload.location,
+            payload.status,
+            payload.eta,
+            user_id=request.state.user_id,
+        )
+    )
 
 
 @app.post("/api/parcelping/pickup", response_model=ParcelItem)
-def parcelping_pickup(payload: ParcelPickupRequest) -> ParcelItem:
-    parcel = pickup_parcel(payload.id)
+def parcelping_pickup(payload: ParcelPickupRequest, request: Request) -> ParcelItem:
+    parcel = pickup_parcel(payload.id, user_id=request.state.user_id)
     if parcel is None:
         raise HTTPException(status_code=404, detail=f"Parcel '{payload.id}' not found")
     return ParcelItem(**parcel)

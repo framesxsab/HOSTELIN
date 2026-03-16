@@ -54,6 +54,8 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
 
+Note: Backend now persists data in `backend/hostelos.db` by default.
+
 2. Start frontend in a second terminal:
 
 ```bash
@@ -61,6 +63,8 @@ cd frontend
 npm install
 npm run dev
 ```
+
+Optional: set `NEXT_PUBLIC_BUNKY_API_BASE` in `.env.local` if backend is not on `http://127.0.0.1:8000`.
 
 3. Open the dashboard and run commands in the command bar:
 - `mess status`
