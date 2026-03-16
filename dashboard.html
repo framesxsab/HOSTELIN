@@ -1,0 +1,279 @@
+<!-- HostelOS: Bunky Dashboard (Unified) -->
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bunky Dashboard | HostelOS</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&display=swap">
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#21c45d",
+                        "background-light": "#f8fafc",
+                        "background-dark": "#0f172a",
+                        "neutral-dark": "#1e293b",
+                        "accent-dark": "#334155"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "mono": ["JetBrains Mono", "monospace"]
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace !important; }
+        .cursor-blink { border-right: 2px solid #21c45d; animation: blink 1s step-end infinite; }
+        @keyframes blink { from, to { border-color: transparent } 50% { border-color: #21c45d } }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+<div class="relative flex h-screen w-full flex-col overflow-hidden">
+    <!-- Top Navigation Bar -->
+    <header class="flex items-center justify-between border-b border-accent-dark/30 bg-background-dark/80 backdrop-blur-md px-6 py-3 z-50">
+        <div class="flex items-center gap-6">
+            <div class="flex items-center gap-3">
+                <div class="size-8 bg-primary rounded-lg flex items-center justify-center text-background-dark">
+                    <span class="material-symbols-outlined font-bold">terminal</span>
+                </div>
+                <div class="flex flex-col">
+                    <h2 class="text-white font-mono text-sm font-bold leading-tight tracking-tight uppercase">HostelOS <span class="text-primary">v4.0.2</span></h2>
+                    <span class="text-[10px] text-primary/70 font-mono tracking-widest">BUNKY_DASHBOARD_STABLE</span>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="flex gap-2">
+                <button class="flex size-9 cursor-pointer items-center justify-center rounded-lg bg-neutral-dark hover:bg-accent-dark text-slate-300 transition-colors">
+                    <span class="material-symbols-outlined text-xl">notifications</span>
+                </button>
+            </div>
+            <div class="flex items-center gap-3 pl-4 border-l border-accent-dark/50">
+                <div class="text-right hidden sm:block">
+                    <p class="text-xs font-mono font-bold text-white">DEB_9921</p>
+                    <p class="text-[10px] font-mono text-primary">ADMIN_ACCESS</p>
+                </div>
+                <div class="bg-primary/20 border border-primary/50 rounded-full p-0.5">
+                    <div class="size-8 rounded-full bg-neutral-dark flex items-center justify-center overflow-hidden"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <div class="flex flex-1 overflow-hidden">
+        <!-- Sidebar Navigation -->
+        <aside class="w-64 border-r border-accent-dark/30 bg-background-dark hidden lg:flex lg:flex-col p-4 gap-6">
+            <div class="flex flex-col gap-1">
+                <p class="text-[10px] font-mono font-bold text-slate-500 px-3 uppercase tracking-wider mb-2">Main Menu</p>
+                <nav class="flex flex-col gap-1">
+                    <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 text-primary border border-primary/20">
+                        <span class="material-symbols-outlined text-xl">grid_view</span><span class="text-sm font-mono font-medium">Dashboard</span>
+                    </a>
+                    <a href="messmate.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:bg-neutral-dark hover:text-slate-100 transition-all">
+                        <span class="material-symbols-outlined text-xl">restaurant</span><span class="text-sm font-mono">MessMate</span>
+                    </a>
+                    <a href="fixit.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:bg-neutral-dark hover:text-slate-100 transition-all">
+                        <span class="material-symbols-outlined text-xl">construction</span><span class="text-sm font-mono">FixIt</span>
+                    </a>
+                    <a href="roomtab.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:bg-neutral-dark hover:text-slate-100 transition-all">
+                        <span class="material-symbols-outlined text-xl">account_balance_wallet</span><span class="text-sm font-mono">RoomTab</span>
+                    </a>
+                    <a href="parcelping.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:bg-neutral-dark hover:text-slate-100 transition-all">
+                        <span class="material-symbols-outlined text-xl">package_2</span><span class="text-sm font-mono">ParcelPing</span>
+                    </a>
+                </nav>
+            </div>
+            <div class="flex flex-col gap-1">
+                <p class="text-[10px] font-mono font-bold text-slate-500 px-3 uppercase tracking-wider mb-2">Coming Soon</p>
+                <div class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 cursor-not-allowed">
+                    <span class="material-symbols-outlined text-xl">local_laundry_service</span>
+                    <span class="text-sm font-mono">WashWatch</span>
+                    <span class="ml-auto text-[9px] font-mono bg-accent-dark px-1.5 py-0.5 rounded text-slate-500">SOON</span>
+                </div>
+                <div class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 cursor-not-allowed">
+                    <span class="material-symbols-outlined text-xl">sos</span>
+                    <span class="text-sm font-mono">SafeCircle</span>
+                    <span class="ml-auto text-[9px] font-mono bg-accent-dark px-1.5 py-0.5 rounded text-slate-500">SOON</span>
+                </div>
+                <div class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 cursor-not-allowed">
+                    <span class="material-symbols-outlined text-xl">storefront</span>
+                    <span class="text-sm font-mono">Bazaar</span>
+                    <span class="ml-auto text-[9px] font-mono bg-accent-dark px-1.5 py-0.5 rounded text-slate-500">SOON</span>
+                </div>
+            </div>
+            <div class="mt-auto p-4 rounded-xl border border-primary/20 bg-primary/5">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="material-symbols-outlined text-primary text-lg">bolt</span>
+                    <p class="text-xs font-mono font-bold text-white tracking-tight uppercase">AI Engine</p>
+                </div>
+                <p class="text-[10px] font-mono text-slate-400 mb-3 leading-relaxed">Bunky AI is learning your routine. Network optimizations pending.</p>
+                <div class="w-full bg-accent-dark h-1 rounded-full overflow-hidden">
+                    <div class="bg-primary h-full w-[65%]"></div>
+                </div>
+            </div>
+        </aside>
+        <!-- Main Dashboard Area -->
+        <main class="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+            <!-- Command Bar -->
+            <div class="w-full max-w-4xl mx-auto">
+                <div class="bg-neutral-dark border border-accent-dark rounded-lg flex items-center px-4 py-3 shadow-2xl shadow-primary/5">
+                    <span class="text-primary font-mono font-bold mr-3 text-lg">></span>
+                    <div class="flex-1 font-mono text-primary text-sm flex items-center">
+                        <span class="mr-1">bunky --status-all</span>
+                        <span class="cursor-blink h-4 w-px"></span>
+                    </div>
+                </div>
+            </div>
+            <!-- Metrics Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                <div class="bg-neutral-dark border border-accent-dark p-5 rounded-xl hover:border-primary/50 transition-all flex flex-col gap-4">
+                    <div class="flex items-center justify-between">
+                        <div class="size-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary"><span class="material-symbols-outlined">restaurant</span></div>
+                        <span class="text-[10px] font-mono text-slate-500">MESSMATE_CORE</span>
+                    </div>
+                    <div><h3 class="text-xl font-mono font-bold text-white uppercase tracking-tight">Dinner: 20:00</h3>
+                    <p class="text-[10px] font-mono text-slate-500 mt-1">Dal Makhani · Naan · Paneer</p></div>
+                </div>
+                <div class="bg-neutral-dark border border-accent-dark p-5 rounded-xl hover:border-primary/50 transition-all flex flex-col gap-4">
+                    <div class="flex items-center justify-between">
+                        <div class="size-10 bg-yellow-500/10 rounded-lg flex items-center justify-center text-yellow-500"><span class="material-symbols-outlined">confirmation_number</span></div>
+                        <span class="text-[10px] font-mono text-slate-500">FIXIT_QUEUE</span>
+                    </div>
+                    <div><h3 class="text-xl font-mono font-bold text-white uppercase tracking-tight">2 Pending</h3>
+                    <p class="text-[10px] font-mono text-slate-500 mt-1">1 escalated · 1 in progress</p></div>
+                </div>
+                <div class="bg-neutral-dark border border-accent-dark p-5 rounded-xl hover:border-primary/50 transition-all flex flex-col gap-4">
+                    <div class="flex items-center justify-between">
+                        <div class="size-10 bg-blue-500/10 rounded-lg flex items-center justify-center text-blue-500"><span class="material-symbols-outlined">payments</span></div>
+                        <span class="text-[10px] font-mono text-slate-500">ROOMTAB_LEDGER</span>
+                    </div>
+                    <div><h3 class="text-xl font-mono font-bold text-white uppercase tracking-tight">₹4,500.00</h3>
+                    <p class="text-[10px] font-mono text-primary mt-1">+₹780 owed to you</p></div>
+                </div>
+                <div class="bg-neutral-dark border border-accent-dark p-5 rounded-xl hover:border-primary/50 transition-all flex flex-col gap-4">
+                    <div class="flex items-center justify-between">
+                        <div class="size-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary"><span class="material-symbols-outlined">local_shipping</span></div>
+                        <span class="text-[10px] font-mono text-slate-500">PARCELPING_LOG</span>
+                    </div>
+                    <div><h3 class="text-xl font-mono font-bold text-white uppercase tracking-tight">1 Arrived</h3>
+                    <p class="text-[10px] font-mono text-yellow-400 mt-1">Collect by 9 PM · Locker B-07</p></div>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 flex-1">
+                <div class="xl:col-span-2 flex flex-col bg-neutral-dark border border-accent-dark rounded-xl overflow-hidden min-h-100">
+                    <div class="px-5 py-3 border-b border-accent-dark flex items-center justify-between bg-background-dark/50">
+                        <h2 class="text-xs font-mono font-bold text-white uppercase tracking-widest">System Activity Log</h2>
+                        <span class="flex items-center gap-1.5 text-[10px] font-mono text-primary"><span class="size-1.5 bg-primary rounded-full animate-pulse"></span>LIVE</span>
+                    </div>
+                    <div class="p-4 font-mono text-xs flex flex-col gap-3 overflow-y-auto flex-1">
+                        <div class="flex gap-4 p-2 rounded hover:bg-accent-dark/30 transition-colors">
+                            <span class="text-slate-500 shrink-0">[20:42:11]</span><span class="text-primary shrink-0">INFO</span><span class="text-slate-300">Parcel #AMZ-8821 logged at Main Entrance. Locker B-07 assigned.</span>
+                        </div>
+                        <div class="flex gap-4 p-2 rounded hover:bg-accent-dark/30 transition-colors">
+                            <span class="text-slate-500 shrink-0">[19:30:55]</span><span class="text-yellow-400 shrink-0">WARN</span><span class="text-slate-300">Ticket #TKT-0041 (Electrical) unassigned for 48h — escalating to warden.</span>
+                        </div>
+                        <div class="flex gap-4 p-2 rounded hover:bg-accent-dark/30 transition-colors">
+                            <span class="text-slate-500 shrink-0">[14:12:03]</span><span class="text-primary shrink-0">INFO</span><span class="text-slate-300">Mess lunch rated 3.2/5 by 88 students. Bunky flagged alternatives.</span>
+                        </div>
+                        <div class="flex gap-4 p-2 rounded hover:bg-accent-dark/30 transition-colors">
+                            <span class="text-slate-500 shrink-0">[12:08:41]</span><span class="text-blue-400 shrink-0">INFO</span><span class="text-slate-300">RoomTab: Kabir added WiFi expense ₹1,120. Split initiated with 4 members.</span>
+                        </div>
+                        <div class="flex gap-4 p-2 rounded hover:bg-accent-dark/30 transition-colors">
+                            <span class="text-slate-500 shrink-0">[09:15:22]</span><span class="text-primary shrink-0">INFO</span><span class="text-slate-300">Ticket #TKT-0039 (Plumbing) marked IN_PROGRESS. ETA: Mar 17.</span>
+                        </div>
+                        <div class="flex gap-4 p-2 rounded hover:bg-accent-dark/30 transition-colors">
+                            <span class="text-slate-500 shrink-0">[08:00:01]</span><span class="text-primary shrink-0">INFO</span><span class="text-slate-300">MessMate: Breakfast menu pushed. Idli, Sambar, Chutney — 07:30 start.</span>
+                        </div>
+                        <div class="flex gap-4 p-2 rounded hover:bg-accent-dark/30 transition-colors">
+                            <span class="text-slate-500 shrink-0">[07:55:14]</span><span class="text-blue-400 shrink-0">SYS</span><span class="text-slate-300">Bunky AI engine warm-up complete. All modules nominal.</span>
+                        </div>
+                    </div>
+                    <!-- Quick Actions -->
+                    <div class="px-4 pb-4 pt-2 border-t border-accent-dark/50 grid grid-cols-2 md:grid-cols-4 gap-2">
+                        <a href="messmate.html" class="flex items-center gap-2 px-3 py-2 bg-background-dark rounded-lg border border-accent-dark hover:border-primary/50 hover:text-primary text-slate-400 transition-all text-[11px] font-mono">
+                            <span class="material-symbols-outlined text-sm">restaurant</span>MessMate
+                        </a>
+                        <a href="fixit.html" class="flex items-center gap-2 px-3 py-2 bg-background-dark rounded-lg border border-accent-dark hover:border-primary/50 hover:text-primary text-slate-400 transition-all text-[11px] font-mono">
+                            <span class="material-symbols-outlined text-sm">construction</span>FixIt
+                        </a>
+                        <a href="roomtab.html" class="flex items-center gap-2 px-3 py-2 bg-background-dark rounded-lg border border-accent-dark hover:border-primary/50 hover:text-primary text-slate-400 transition-all text-[11px] font-mono">
+                            <span class="material-symbols-outlined text-sm">account_balance_wallet</span>RoomTab
+                        </a>
+                        <a href="parcelping.html" class="flex items-center gap-2 px-3 py-2 bg-background-dark rounded-lg border border-accent-dark hover:border-primary/50 hover:text-primary text-slate-400 transition-all text-[11px] font-mono">
+                            <span class="material-symbols-outlined text-sm">package_2</span>ParcelPing
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Bunky AI Chat Panel -->
+                <div class="flex flex-col bg-neutral-dark border border-primary/20 rounded-xl overflow-hidden min-h-100">
+                    <div class="px-5 py-3 border-b border-primary/20 flex items-center gap-2 bg-background-dark/50">
+                        <span class="material-symbols-outlined text-primary text-sm">bolt</span>
+                        <h2 class="text-xs font-mono font-bold text-primary uppercase tracking-widest">Bunky AI</h2>
+                        <span class="ml-auto text-[10px] font-mono text-slate-500">v4.0 · STABLE</span>
+                    </div>
+                    <!-- Chat Messages -->
+                    <div class="flex-1 p-4 flex flex-col gap-3 overflow-y-auto">
+                        <!-- Bunky message -->
+                        <div class="flex gap-2 items-start">
+                            <div class="size-6 bg-primary/20 border border-primary/40 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                                <span class="material-symbols-outlined text-primary text-xs">bolt</span>
+                            </div>
+                            <div class="bg-background-dark border border-accent-dark rounded-xl rounded-tl-none px-3 py-2 max-w-[85%]">
+                                <p class="text-xs font-mono text-slate-300 leading-relaxed">Hey Deb! 👋 Your parcel at gate needs pickup before 9 PM. Also, mess lunch was just 3.2/5 today — want alternatives nearby?</p>
+                            </div>
+                        </div>
+                        <!-- User message -->
+                        <div class="flex gap-2 items-start justify-end">
+                            <div class="bg-primary/10 border border-primary/20 rounded-xl rounded-tr-none px-3 py-2 max-w-[85%]">
+                                <p class="text-xs font-mono text-primary leading-relaxed">What's for dinner tonight?</p>
+                            </div>
+                        </div>
+                        <!-- Bunky reply -->
+                        <div class="flex gap-2 items-start">
+                            <div class="size-6 bg-primary/20 border border-primary/40 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                                <span class="material-symbols-outlined text-primary text-xs">bolt</span>
+                            </div>
+                            <div class="bg-background-dark border border-accent-dark rounded-xl rounded-tl-none px-3 py-2 max-w-[85%]">
+                                <p class="text-xs font-mono text-slate-300 leading-relaxed">Dinner tonight (19:30–21:00): <span class="text-primary">Dal Makhani, Naan, Paneer Tikka</span>. ~720 kcal. Last time this was served it got 4.3/5 🔥</p>
+                            </div>
+                        </div>
+                        <!-- Bunky proactive alert -->
+                        <div class="flex gap-2 items-start">
+                            <div class="size-6 bg-primary/20 border border-primary/40 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                                <span class="material-symbols-outlined text-primary text-xs">bolt</span>
+                            </div>
+                            <div class="bg-yellow-500/5 border border-yellow-500/20 rounded-xl rounded-tl-none px-3 py-2 max-w-[85%]">
+                                <p class="text-xs font-mono text-yellow-300 leading-relaxed">⚠️ Ticket #TKT-0041 has been open 48h. I've auto-escalated to the warden for you.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Suggestion chips -->
+                    <div class="px-4 py-2 flex flex-wrap gap-2 border-t border-accent-dark/50">
+                        <button class="text-[10px] font-mono px-2 py-1 bg-background-dark border border-accent-dark rounded-full text-slate-400 hover:border-primary/50 hover:text-primary transition-colors">My balance</button>
+                        <button class="text-[10px] font-mono px-2 py-1 bg-background-dark border border-accent-dark rounded-full text-slate-400 hover:border-primary/50 hover:text-primary transition-colors">Open tickets</button>
+                        <button class="text-[10px] font-mono px-2 py-1 bg-background-dark border border-accent-dark rounded-full text-slate-400 hover:border-primary/50 hover:text-primary transition-colors">Parcel status</button>
+                    </div>
+                    <!-- Input -->
+                    <div class="p-3 border-t border-accent-dark/50">
+                        <div class="flex items-center gap-2 bg-background-dark border border-accent-dark rounded-lg px-3 py-2 focus-within:border-primary/50 transition-colors">
+                            <span class="text-primary font-mono text-sm shrink-0">›</span>
+                            <input type="text" placeholder="Ask Bunky anything..." class="flex-1 bg-transparent text-xs font-mono text-slate-300 placeholder-slate-600 outline-none"/>
+                            <button class="text-primary hover:text-primary/70 transition-colors shrink-0">
+                                <span class="material-symbols-outlined text-sm">send</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+</body></html>
