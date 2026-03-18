@@ -25,8 +25,3 @@ def apply_migrations() -> None:
 
 def init_database() -> None:
     apply_migrations()
-
-    from .seed_data import seed_if_empty
-
-    with get_connection() as connection:
-        seed_if_empty(connection)

@@ -10,6 +10,8 @@ class BunkyChatRequest(BaseModel):
 class ToolResult(BaseModel):
     tool: Literal[
         "mess_status",
+        "mess_skip_meal",
+        "mess_unskip_meal",
         "fixit_ticket_create",
         "roomtab_log_expense",
         "parcel_status",
@@ -25,6 +27,7 @@ class BunkyChatResponse(BaseModel):
 
 class DashboardSummary(BaseModel):
     dinner_time: str
+    mess_skipped_today: int
     fixit_pending: int
     roomtab_balance: str
     parcel_arrived: int
@@ -37,11 +40,50 @@ class MealSlot(BaseModel):
     title: str
     menu: list[str]
     status: str
+    skipped: bool
+
+
+class WeeklyMealCell(BaseModel):
+    items: list[str]
+
+
+class WeeklyMenuDay(BaseModel):
+    day: str
+    date: str
+    breakfast: WeeklyMealCell
+    lunch: WeeklyMealCell
+    dinner: WeeklyMealCell
 
 
 class MessMateResponse(BaseModel):
     period: str
+    today_label: str
     slots: list[MealSlot]
+    week: list[WeeklyMenuDay]
+
+
+class MessMateSkipRequest(BaseModel):
+    meal: str = Field(min_length=3, max_length=40)
+    date: str | None = Field(default=None, max_length=10)
+
+
+class MessMateSkipResponse(BaseModel):
+    meal: str
+    date: str
+    already_skipped: bool
+    message: str
+
+
+class MessMateUnskipRequest(BaseModel):
+    meal: str = Field(min_length=3, max_length=40)
+    date: str | None = Field(default=None, max_length=10)
+
+
+class MessMateUnskipResponse(BaseModel):
+    meal: str
+    date: str
+    was_skipped: bool
+    message: str
 
 
 class FixItTicket(BaseModel):

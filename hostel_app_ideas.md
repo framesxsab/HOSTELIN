@@ -296,7 +296,7 @@ An in-app AI companion that ties everything together.
 
 ## 🛠️ Implementation Plan (Now)
 
-**Last Updated:** March 16, 2026
+**Last Updated:** March 18, 2026
 
 ### Current Build Direction
 - Frontend-first implementation in Next.js with the terminal-luxe visual identity.
@@ -323,15 +323,15 @@ An in-app AI companion that ties everything together.
 4. [x] Connect frontend command bar to backend endpoint and display responses.
 5. [x] Add local data seed + module state wiring for live dashboard cards.
 
-### Sprint 2: Backend + Bunky Agent
-1. Initialize FastAPI backend.
-2. Add `/api/bunky/chat` endpoint.
-3. Wire core tools: `mess_status`, `fixit_ticket_create`, `roomtab_log_expense`, `parcel_status`.
+### Sprint 2: Backend + Bunky Agent (Completed)
+1. [x] Initialize FastAPI backend.
+2. [x] Add `/api/bunky/chat` endpoint.
+3. [x] Wire core tools: `mess_status`, `fixit_ticket_create`, `roomtab_log_expense`, `parcel_status`.
 
-### Sprint 3: Data + Integration
-1. Add persistent database schema for modules.
-2. Connect UI widgets and command results to live APIs.
-3. Add optimistic UI updates and activity log streaming.
+### Sprint 3: Data + Integration (Completed)
+1. [x] Add persistent database schema for modules.
+2. [x] Connect UI widgets and command results to live APIs.
+3. [x] Add optimistic UI updates and activity log streaming.
 
 ### Definition of MVP Done
 - Student can check menu and skip meal.

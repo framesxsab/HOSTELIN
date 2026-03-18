@@ -2,6 +2,8 @@
 
 Terminal-luxe frontend for HostelOS built with Next.js App Router + Tailwind.
 
+For full project start/verify/release steps, see `RUNBOOK.md`, run `.\\scripts\\start-dev.ps1` to launch both services, and use `.\\scripts\\verify.ps1` for checks.
+
 ### Current Status
 - Shared app shell implemented.
 - Routes implemented:
@@ -37,11 +39,12 @@ If 3000 is busy, Next.js automatically uses the next available port (for example
 - `src/app/roomtab/page.tsx` - RoomTab module
 - `src/app/parcelping/page.tsx` - ParcelPing module
 
-### Next Steps (Tomorrow)
+### Completed Milestones
 1. [x] Add backend scaffold (FastAPI).
 2. [x] Add Bunky endpoint `/api/bunky/chat` with mock actions.
 3. [x] Connect command bar in dashboard to backend response stream.
 4. [x] Add seeded data and replace static module cards with API-driven values.
+5. [x] Add live activity streaming endpoint and optimistic command updates on dashboard.
 
 ### Local Full Flow
 1. Start backend from the workspace root:
@@ -71,6 +74,10 @@ Optional: set `NEXT_PUBLIC_BUNKY_API_BASE` in `.env.local` if backend is not on 
 - `fixit for broken fan in room 14`
 - `roomtab add 250 for cleaning supplies`
 - `parcel status`
+
+4. Open `/messmate` and use `Skip Meal` / `Undo Skip` to toggle today's skip state in backend.
+
+5. Dashboard command bar now respects backend chat rate-limits and shows a live retry countdown when throttled.
 
 ## Learn More
 

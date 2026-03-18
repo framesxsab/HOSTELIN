@@ -1,68 +1,66 @@
 "use client";
 
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useState } from "react";
 
 import { AppShell } from "@/components/app-shell";
-
-type FixItTicket = {
-  id: string;
-  title: string;
-  assignee: string;
-  status: string;
-  eta: string;
-};
-
-const API_BASE = process.env.NEXT_PUBLIC_BUNKY_API_BASE ?? "http://127.0.0.1:8000";
+import { UiIcon } from "@/components/ui-icon";
+import { apiFetchJson, isRetryableMessage, toUiMessage } from "@/lib/api-client";
+import { type FixItTicket } from "@/lib/types";
 
 export default function FixItPage() {
   const [tickets, setTickets] = useState<FixItTicket[]>([]);
   const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [message, setMessage] = useState("Live queue synced.");
+  const [message, setMessage] = useState("");
+  const [titleError, setTitleError] = useState("");
 
-  const loadTickets = async () => {
+  const loadTickets = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/api/fixit/tickets`, { cache: "no-store" });
-      if (!response.ok) {
-        throw new Error("Failed to load tickets");
-      }
-      const data = (await response.json()) as FixItTicket[];
+      const data = await apiFetchJson<FixItTicket[]>("/api/fixit/tickets");
       setTickets(data);
-    } catch {
-      setMessage("Backend unavailable. Could not load ticket queue.");
+      setMessage("");
+    } catch (error) {
+      setMessage(toUiMessage(error, "Could not load ticket queue."));
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void loadTickets();
-  }, []);
+  }, [loadTickets]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      void loadTickets();
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, [loadTickets]);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!title.trim()) {
+    const trimmedTitle = title.trim();
+    if (trimmedTitle.length < 3) {
+      setTitleError("Title must be at least 3 characters.");
       return;
     }
+    setTitleError("");
 
     setSending(true);
     try {
-      const response = await fetch(`${API_BASE}/api/fixit/tickets`, {
+      const created = await apiFetchJson<FixItTicket>("/api/fixit/tickets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: title.trim() }),
+        body: JSON.stringify({ title: trimmedTitle }),
       });
-      if (!response.ok) {
-        throw new Error("Failed to create ticket");
-      }
-      const created = (await response.json()) as FixItTicket;
       setTickets((prev) => [created, ...prev]);
       setTitle("");
       setMessage(`Created ${created.id}.`);
-    } catch {
-      setMessage("Ticket creation failed.");
+    } catch (error) {
+      setMessage(toUiMessage(error, "Ticket creation failed."));
     } finally {
       setSending(false);
     }
@@ -70,39 +68,58 @@ export default function FixItPage() {
 
   return (
     <AppShell active="fixit">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="pixel-panel flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 rounded-sm p-4 bg-background-dark/30">
         <div>
           <h1 className="text-2xl font-bold tracking-tight font-mono">Maintenance Terminal</h1>
-          <p className="text-slate-500 text-sm font-mono">
-            System Status: <span className="text-primary font-bold">OPTIMAL</span>
-          </p>
+          <p className="text-slate-500 text-sm font-mono">Track and submit repair requests.</p>
         </div>
         <form onSubmit={onSubmit} className="flex items-center gap-2 w-full sm:w-auto">
-          <input
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            placeholder="Issue title"
-            className="bg-white/5 border border-accent-dark rounded-lg px-3 py-2 text-sm font-mono w-full sm:w-72"
-          />
+          <div className="w-full sm:w-72">
+            <input
+              value={title}
+              onChange={(event) => {
+                setTitle(event.target.value);
+                if (titleError) {
+                  setTitleError("");
+                }
+              }}
+              placeholder="Issue title"
+              className={`pixel-control bg-white/5 border rounded px-3 py-2 text-sm font-mono w-full ${titleError ? "border-red-400" : "border-accent-dark"}`}
+              aria-invalid={titleError ? true : undefined}
+            />
+            {titleError && <p className="mt-1 text-[11px] font-mono text-red-300">{titleError}</p>}
+          </div>
           <button
             type="submit"
             disabled={sending}
-            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg font-bold text-sm transition-all shadow-lg shadow-primary/20 disabled:opacity-40"
+            className="pixel-control flex items-center gap-2 bg-primary hover:bg-primary/90 text-background-dark px-5 py-2.5 rounded font-bold text-sm transition-all shadow-lg shadow-primary/20 disabled:opacity-40"
           >
-            <span className="material-symbols-outlined">add_circle</span>
+            <UiIcon name="add_circle" className="size-4" />
             {sending ? "CREATING" : "NEW REQUEST"}
           </button>
         </form>
       </div>
 
-      <p className="text-xs text-slate-400 font-mono">{message}</p>
+      <div className="flex items-center gap-3">
+        <p className="text-xs text-slate-400 font-mono">{message}</p>
+        {isRetryableMessage(message) ? (
+          <button
+            type="button"
+            onClick={() => void loadTickets()}
+            className="pixel-control rounded border border-primary/30 px-2 py-1 text-xs font-mono text-primary hover:bg-primary/10"
+          >
+            Retry
+          </button>
+        ) : null}
+      </div>
 
       <div className="space-y-3">
-        {loading && <p className="text-xs text-slate-400 font-mono">Loading queue...</p>}
+        {loading && <p className="text-xs text-slate-400 font-mono">Loading...</p>}
+        {!loading && tickets.length === 0 && <p className="text-xs text-slate-400 font-mono">No tickets available.</p>}
         {tickets.map((ticket) => (
           <div
             key={ticket.id}
-            className="group bg-white/5 hover:bg-white/10 border border-accent-dark p-4 rounded-xl transition-all flex flex-col md:flex-row gap-4 items-start md:items-center"
+            className="pixel-panel group bg-white/5 hover:bg-white/10 border border-accent-dark p-4 rounded-sm transition-all flex flex-col md:flex-row gap-4 items-start md:items-center"
           >
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
@@ -117,7 +134,7 @@ export default function FixItPage() {
               </p>
             </div>
             <div className="flex items-center gap-1.5 text-primary font-mono text-sm bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
-              <span className="material-symbols-outlined text-sm">timer</span>
+              <UiIcon name="timer" className="size-4" />
               ETA: {ticket.eta}
             </div>
           </div>

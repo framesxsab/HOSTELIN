@@ -62,3 +62,14 @@ CREATE TABLE IF NOT EXISTS activity_log (
 CREATE INDEX IF NOT EXISTS idx_fixit_status ON fixit_tickets(status);
 CREATE INDEX IF NOT EXISTS idx_parcels_pickup ON parcels(picked_up);
 CREATE INDEX IF NOT EXISTS idx_activity_created_at ON activity_log(created_at DESC);
+
+CREATE TABLE IF NOT EXISTS skipped_meals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT NOT NULL,
+    meal TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    UNIQUE(date, meal, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_skipped_meals_date_user ON skipped_meals(date, user_id);
+CREATE INDEX IF NOT EXISTS idx_skipped_meals_user_meal ON skipped_meals(user_id, meal);
