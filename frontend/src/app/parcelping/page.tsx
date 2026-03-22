@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 

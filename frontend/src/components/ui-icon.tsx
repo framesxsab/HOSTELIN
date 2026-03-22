@@ -15,7 +15,9 @@ type UiIconName =
   | "wb_sunny"
   | "lunch_dining"
   | "dark_mode"
-  | "qr_code";
+  | "qr_code"
+  | "save"
+  | "star";
 
 const ICON_PATHS: Record<UiIconName, string[]> = {
   grid_view: [
@@ -114,6 +116,14 @@ const ICON_PATHS: Record<UiIconName, string[]> = {
     "M18 14h2",
     "M14 18h2",
     "M18 18h2",
+  ],
+  save: [
+    "M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z",
+    "M17 21v-8H7v8",
+    "M7 3v5h8",
+  ],
+  star: [
+    "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
   ],
 };
 

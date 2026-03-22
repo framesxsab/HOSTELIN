@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -175,8 +175,11 @@ export default function MessMatePage() {
               </tr>
             </thead>
             <tbody>
-              {week.map((day, index) => (
-                <tr key={`${day.day}-${day.date}`} className={index === 3 ? "bg-primary/5" : "border-b border-accent-dark/25"}>
+              {week.map((day) => {
+                const todayDayName = data?.today_label?.split(" ")[0]?.toUpperCase() ?? "";
+                const isToday = day.day.toUpperCase() === todayDayName;
+                return (
+                <tr key={`${day.day}-${day.date}`} className={isToday ? "bg-primary/5" : "border-b border-accent-dark/25"}>
                   <td className="px-4 py-4 align-top text-white">
                     <div className="font-bold uppercase tracking-[0.16em]">{day.day}</div>
                     <div className="mt-1 text-[10px] text-slate-400">({day.date})</div>
@@ -193,7 +196,8 @@ export default function MessMatePage() {
                     </td>
                   ))}
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

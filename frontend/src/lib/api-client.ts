@@ -55,15 +55,34 @@ function parseRetryAfterSeconds(value: string | null): number | undefined {
   return Math.ceil(parsed);
 }
 
+function getStoredToken(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem("hostelos-auth");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { state?: { token?: string } };
+    return parsed?.state?.token ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function apiFetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
+  const token = getStoredToken();
+  const authHeader: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
   try {
     const response = await fetch(`${API_BASE}${path}`, {
       ...init,
       cache: init?.cache ?? "no-store",
       signal: controller.signal,
+      headers: {
+        ...authHeader,
+        ...(init?.headers as Record<string, string> | undefined),
+      },
     });
 
     const responseText = await response.text();
