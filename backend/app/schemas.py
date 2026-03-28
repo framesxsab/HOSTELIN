@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -140,3 +140,65 @@ class ParcelCreateRequest(BaseModel):
 
 class ParcelPickupRequest(BaseModel):
     id: str = Field(min_length=3, max_length=40)
+
+
+# ── Auth schemas ──────────────────────────────────────────────
+
+class RegisterRequest(BaseModel):
+    name: str = Field(min_length=2, max_length=120)
+    username: str = Field(min_length=3, max_length=60)
+    password: str = Field(min_length=6, max_length=120)
+
+
+class LoginRequest(BaseModel):
+    username: str = Field(min_length=1, max_length=60)
+    password: str = Field(min_length=1, max_length=120)
+
+
+class AuthUser(BaseModel):
+    id: str
+    name: str
+    username: str
+    role: str
+
+
+class AuthResponse(BaseModel):
+    access_token: str
+    user: AuthUser
+
+
+# ── Admin schemas ─────────────────────────────────────────────
+
+class AdminFixItUpdate(BaseModel):
+    status: Optional[str] = None
+    assignee: Optional[str] = None
+    eta: Optional[str] = None
+
+
+class AdminParcelUpdate(BaseModel):
+    status: Optional[str] = None
+    eta: Optional[str] = None
+
+
+class AdminMenuUpdate(BaseModel):
+    week: list[dict]
+
+
+# ── Meal rating schemas ──────────────────────────────────────
+
+class MealRateRequest(BaseModel):
+    meal: str = Field(min_length=3, max_length=40)
+    rating: int = Field(ge=1, le=5)
+    date: str | None = Field(default=None, max_length=10)
+
+
+class MealRatingItem(BaseModel):
+    meal: str
+    date: str
+    rating: int
+    average: float
+    total_ratings: int
+
+
+class MealRatingsResponse(BaseModel):
+    ratings: list[MealRatingItem]

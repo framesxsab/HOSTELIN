@@ -14,7 +14,7 @@ export class ApiClientError extends Error {
   }
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_BUNKY_API_BASE ?? "http://127.0.0.1:8000";
+const API_BASE = process.env.NEXT_PUBLIC_BUNKY_API_BASE ?? "";
 const API_TIMEOUT_MS = Number(process.env.NEXT_PUBLIC_BUNKY_API_TIMEOUT_MS ?? "10000");
 
 function tryParseJson(input: string): unknown {

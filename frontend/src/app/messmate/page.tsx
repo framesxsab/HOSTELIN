@@ -5,7 +5,60 @@ import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { UiIcon } from "@/components/ui-icon";
 import { apiFetchJson, toUiMessage } from "@/lib/api-client";
-import { type MessMateResponse, type MessMateSkipResponse, type MessMateUnskipResponse } from "@/lib/types";
+import {
+  type MealRating,
+  type MealRatingsResponse,
+  type MessMateResponse,
+  type MessMateSkipResponse,
+  type MessMateUnskipResponse,
+} from "@/lib/types";
+
+function StarRating({
+  rating,
+  average,
+  totalRatings,
+  onRate,
+  disabled,
+}: {
+  rating: number;
+  average: number;
+  totalRatings: number;
+  onRate: (stars: number) => void;
+  disabled: boolean;
+}) {
+  const [hovered, setHovered] = useState(0);
+
+  return (
+    <div className="flex items-center gap-2 mt-2">
+      <div className="flex gap-0.5" onMouseLeave={() => setHovered(0)}>
+        {[1, 2, 3, 4, 5].map((star) => {
+          const isFilled = star <= (hovered || rating);
+          return (
+            <button
+              key={star}
+              type="button"
+              disabled={disabled}
+              onMouseEnter={() => setHovered(star)}
+              onClick={() => onRate(star)}
+              className="p-0.5 transition-transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <UiIcon
+                name={isFilled ? "star_filled" : "star"}
+                className={`size-4 ${isFilled ? "text-yellow-400" : "text-slate-500"}`}
+                filled={isFilled}
+              />
+            </button>
+          );
+        })}
+      </div>
+      {totalRatings > 0 && (
+        <span className="text-[10px] font-mono text-slate-400">
+          {average}/5 ({totalRatings})
+        </span>
+      )}
+    </div>
+  );
+}
 
 export default function MessMatePage() {
   const [data, setData] = useState<MessMateResponse | null>(null);
@@ -13,6 +66,8 @@ export default function MessMatePage() {
   const [error, setError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
   const [processingMeal, setProcessingMeal] = useState("");
+  const [ratings, setRatings] = useState<Record<string, MealRating>>({});
+  const [ratingMeal, setRatingMeal] = useState("");
   const slots = data?.slots ?? [];
   const week = data?.week ?? [];
   const weekRange = week.length > 0 ? `${week[0].date} to ${week[week.length - 1].date}` : data?.period ?? "Loading";
@@ -30,17 +85,32 @@ export default function MessMatePage() {
     }
   }, []);
 
+  const loadRatings = useCallback(async () => {
+    try {
+      const payload = await apiFetchJson<MealRatingsResponse>("/api/messmate/ratings");
+      const map: Record<string, MealRating> = {};
+      for (const r of payload.ratings) {
+        map[r.meal] = r;
+      }
+      setRatings(map);
+    } catch {
+      // Ratings are non-critical, silently fail
+    }
+  }, []);
+
   useEffect(() => {
     void load();
-  }, [load]);
+    void loadRatings();
+  }, [load, loadRatings]);
 
   useEffect(() => {
     const interval = setInterval(() => {
       void load();
+      void loadRatings();
     }, 15000);
 
     return () => clearInterval(interval);
-  }, [load]);
+  }, [load, loadRatings]);
 
   const onToggleMealSkip = async (meal: string, currentlySkipped: boolean) => {
     if (processingMeal || !data) {
@@ -85,6 +155,23 @@ export default function MessMatePage() {
     }
   };
 
+  const onRateMeal = async (meal: string, stars: number) => {
+    setRatingMeal(meal);
+    try {
+      const result = await apiFetchJson<MealRating>("/api/messmate/rate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ meal, rating: stars }),
+      });
+      setRatings((prev) => ({ ...prev, [result.meal]: result }));
+      setActionMessage(`Rated ${meal} ${stars}/5 ★`);
+    } catch (err) {
+      setActionMessage(toUiMessage(err, "Could not submit rating."));
+    } finally {
+      setRatingMeal("");
+    }
+  };
+
   return (
     <AppShell active="messmate">
       <div className="pixel-panel flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-primary/20 pb-6 rounded-sm p-4 bg-background-dark/30">
@@ -113,50 +200,65 @@ export default function MessMatePage() {
       {!loading && !error && slots.length === 0 && <p className="text-xs text-slate-400 font-mono">No menu slots available right now.</p>}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {slots.map((slot, index) => (
-          <div
-            key={`${slot.meal}-${index}`}
-            className={
-              slot.meal === "Lunch"
-                ? "pixel-panel bg-background-dark border-2 border-primary rounded-sm overflow-hidden shadow-[0_0_20px_rgba(122,217,87,0.1)]"
-                : "pixel-panel bg-background-dark/60 border border-primary/20 rounded-sm overflow-hidden"
-            }
-          >
+        {slots.map((slot, index) => {
+          const mealRating = ratings[slot.meal];
+          return (
             <div
+              key={`${slot.meal}-${index}`}
               className={
                 slot.meal === "Lunch"
-                  ? "px-4 py-2 bg-primary border-b border-primary flex justify-between items-center"
-                  : "px-4 py-2 bg-primary/10 border-b border-primary/10 flex justify-between items-center"
+                  ? "pixel-panel bg-background-dark border-2 border-primary rounded-sm overflow-hidden shadow-[0_0_20px_rgba(122,217,87,0.1)]"
+                  : "pixel-panel bg-background-dark/60 border border-primary/20 rounded-sm overflow-hidden"
               }
             >
-              <span className={slot.meal === "Lunch" ? "text-[10px] font-bold font-mono uppercase tracking-widest text-background-dark" : "text-[10px] font-bold font-mono uppercase tracking-widest text-primary/80"}>
-                {slot.time}
-              </span>
-              <UiIcon
-                name={slot.meal === "Breakfast" ? "wb_sunny" : slot.meal === "Lunch" ? "lunch_dining" : "dark_mode"}
-                className={slot.meal === "Lunch" ? "size-4 text-background-dark" : "size-4 text-primary"}
-              />
-            </div>
-            <div className="p-4">
-              <h4 className="text-lg font-bold font-mono uppercase mb-1">{slot.title}</h4>
-              <p className={slot.meal === "Lunch" ? "text-xs text-primary mb-4 uppercase" : "text-xs text-slate-400 mb-4 uppercase"}>
-                {slot.menu.join(" + ")}
-              </p>
-              <button
-                type="button"
-                disabled={processingMeal === slot.meal}
-                onClick={() => void onToggleMealSkip(slot.meal, slot.skipped)}
+              <div
                 className={
-                  slot.skipped
-                    ? "pixel-control rounded border border-primary/30 bg-primary/10 px-2 py-1 text-[10px] font-mono uppercase tracking-wide text-primary"
-                    : "pixel-control rounded border border-accent-dark px-2 py-1 text-[10px] font-mono uppercase tracking-wide text-slate-300 hover:border-primary/40 hover:text-primary disabled:opacity-50"
+                  slot.meal === "Lunch"
+                    ? "px-4 py-2 bg-primary border-b border-primary flex justify-between items-center"
+                    : "px-4 py-2 bg-primary/10 border-b border-primary/10 flex justify-between items-center"
                 }
               >
-                {processingMeal === slot.meal ? "Working..." : slot.skipped ? "Undo Skip" : "Skip Meal"}
-              </button>
+                <span className={slot.meal === "Lunch" ? "text-[10px] font-bold font-mono uppercase tracking-widest text-background-dark" : "text-[10px] font-bold font-mono uppercase tracking-widest text-primary/80"}>
+                  {slot.time}
+                </span>
+                <UiIcon
+                  name={slot.meal === "Breakfast" ? "wb_sunny" : slot.meal === "Lunch" ? "lunch_dining" : "dark_mode"}
+                  className={slot.meal === "Lunch" ? "size-4 text-background-dark" : "size-4 text-primary"}
+                />
+              </div>
+              <div className="p-4">
+                <h4 className="text-lg font-bold font-mono uppercase mb-1">{slot.title}</h4>
+                <p className={slot.meal === "Lunch" ? "text-xs text-primary mb-3 uppercase" : "text-xs text-slate-400 mb-3 uppercase"}>
+                  {slot.menu.join(" + ")}
+                </p>
+
+                {/* Star Rating */}
+                <StarRating
+                  rating={mealRating?.rating ?? 0}
+                  average={mealRating?.average ?? 0}
+                  totalRatings={mealRating?.total_ratings ?? 0}
+                  onRate={(stars) => void onRateMeal(slot.meal, stars)}
+                  disabled={ratingMeal === slot.meal}
+                />
+
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    disabled={processingMeal === slot.meal}
+                    onClick={() => void onToggleMealSkip(slot.meal, slot.skipped)}
+                    className={
+                      slot.skipped
+                        ? "pixel-control rounded border border-primary/30 bg-primary/10 px-2 py-1 text-[10px] font-mono uppercase tracking-wide text-primary"
+                        : "pixel-control rounded border border-accent-dark px-2 py-1 text-[10px] font-mono uppercase tracking-wide text-slate-300 hover:border-primary/40 hover:text-primary disabled:opacity-50"
+                    }
+                  >
+                    {processingMeal === slot.meal ? "Working..." : slot.skipped ? "Undo Skip" : "Skip Meal"}
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="pixel-panel overflow-hidden rounded-lg">

@@ -17,7 +17,9 @@ type UiIconName =
   | "dark_mode"
   | "qr_code"
   | "save"
-  | "star";
+  | "star"
+  | "star_filled"
+  | "logout";
 
 const ICON_PATHS: Record<UiIconName, string[]> = {
   grid_view: [
@@ -125,15 +127,23 @@ const ICON_PATHS: Record<UiIconName, string[]> = {
   star: [
     "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
   ],
+  star_filled: [
+    "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
+  ],
+  logout: [
+    "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4",
+    "M16 17l5-5-5-5",
+    "M21 12H9",
+  ],
 };
 
-export function UiIcon({ name, className }: { name: UiIconName; className?: string }) {
+export function UiIcon({ name, className, filled }: { name: UiIconName; className?: string; filled?: boolean }) {
   const paths = ICON_PATHS[name];
 
   return (
     <svg
       viewBox="0 0 24 24"
-      fill="none"
+      fill={filled ? "currentColor" : "none"}
       stroke="currentColor"
       strokeWidth="1.8"
       strokeLinecap="round"

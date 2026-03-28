@@ -1,10 +1,14 @@
+"use client";
+
 import Link from "next/link";
 import { ReactNode } from "react";
+import { useRouter } from "next/navigation";
 
 import { AmbientEffects } from "@/components/ambient-effects";
 import { UiIcon, type UiIconName } from "@/components/ui-icon";
+import { useAuthStore } from "@/lib/auth-store";
 
-type AppSection = "dashboard" | "messmate" | "fixit" | "roomtab" | "parcelping";
+type AppSection = "dashboard" | "messmate" | "fixit" | "roomtab" | "parcelping" | "admin";
 
 type NavItem = {
   key: AppSection;
@@ -19,6 +23,7 @@ const NAV_ITEMS: NavItem[] = [
   { key: "fixit", href: "/fixit", icon: "construction", label: "FixIt" },
   { key: "roomtab", href: "/roomtab", icon: "account_balance_wallet", label: "RoomTab" },
   { key: "parcelping", href: "/parcelping", icon: "package_2", label: "ParcelPing" },
+  { key: "admin", href: "/admin", icon: "terminal", label: "Admin" },
 ];
 
 export function AppShell({
@@ -28,6 +33,21 @@ export function AppShell({
   active: AppSection;
   children: ReactNode;
 }) {
+  const { user, logout } = useAuthStore();
+  const router = useRouter();
+  const visibleNavItems = NAV_ITEMS.filter(
+    (item) => item.key !== "admin" || (user && user.role === "admin")
+  );
+
+  const displayName = user?.username?.toUpperCase() ?? "GUEST";
+  const displayRole = user?.role?.toUpperCase() ?? "LOCAL_ACCESS";
+  const mobileGridCols = visibleNavItems.length <= 5 ? "grid-cols-5" : "grid-cols-6";
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
+
   return (
     <div className="relative flex min-h-dvh w-full flex-col overflow-x-hidden bg-background-light text-slate-900 dark:bg-background-dark dark:text-slate-100 font-display">
       <AmbientEffects />
@@ -55,13 +75,24 @@ export function AppShell({
           </button>
           <div className="hidden items-center gap-3 pl-2 lg:flex lg:pl-4 border-l border-accent-dark/50">
             <div className="text-right">
-              <p className="text-xs font-mono font-bold text-white">DEB_9921</p>
-              <p className="text-[10px] font-mono text-slate-400">LOCAL_ACCESS</p>
+              <p className="text-xs font-mono font-bold text-white">{displayName}</p>
+              <p className="text-[10px] font-mono text-slate-400">{displayRole}</p>
             </div>
             <div className="bg-primary/10 border border-primary/20 rounded-full p-0.5">
-              <div className="size-8 rounded-full bg-neutral-dark flex items-center justify-center overflow-hidden" />
+              <div className="size-8 rounded-full bg-neutral-dark flex items-center justify-center overflow-hidden text-primary text-xs font-bold font-mono">
+                {user?.name?.[0]?.toUpperCase() ?? "?"}
+              </div>
             </div>
           </div>
+          {user && (
+            <button
+              onClick={handleLogout}
+              title="Logout"
+              className="pixel-control flex size-9 cursor-pointer items-center justify-center rounded bg-neutral-dark hover:bg-red-500/20 text-slate-300 hover:text-red-400 transition-colors"
+            >
+              <UiIcon name="logout" className="size-4" />
+            </button>
+          )}
         </div>
       </header>
 
@@ -70,7 +101,7 @@ export function AppShell({
           <div className="flex flex-col gap-1">
             <p className="text-[10px] font-mono font-bold text-slate-500 px-3 uppercase tracking-wider mb-2">Workspace</p>
             <nav className="flex flex-col gap-1">
-              {NAV_ITEMS.map((item) => {
+              {visibleNavItems.map((item) => {
                 const isActive = item.key === active;
                 return (
                   <Link
@@ -95,8 +126,8 @@ export function AppShell({
         <main className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col gap-6">{children}</main>
 
         <nav className="pixel-panel lg:hidden border-t border-accent-dark/30 bg-background-dark/78 px-2 py-2 rounded-none">
-          <div className="grid grid-cols-5 gap-1">
-            {NAV_ITEMS.map((item) => {
+          <div className={`grid ${mobileGridCols} gap-1`}>
+            {visibleNavItems.map((item) => {
               const isActive = item.key === active;
               return (
                 <Link

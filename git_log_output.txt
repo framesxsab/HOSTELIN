@@ -1,0 +1,5 @@
+﻿4e07240 feat: complete MVP - meal ratings, auth fix, admin panel fix, and bug fixes
+5cf987c Refine hostel app data flow and UI
+116e00d feat(backend): add sqlite persistence and user identity middleware
+ebd1789 feat(frontend): wire module pages to backend and fix legacy dashboard diagnostics
+c07c314 feat(backend): add bunky module APIs and seeded service layer

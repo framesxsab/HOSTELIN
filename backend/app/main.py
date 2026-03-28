@@ -9,6 +9,7 @@ from uuid import uuid4
 from fastapi import HTTPException
 from fastapi import FastAPI
 from fastapi import Request
+from fastapi import Depends
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.responses import StreamingResponse
@@ -16,12 +17,30 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .database import init_database
 from .database import DB_PATH
+from .database import get_connection
+from .auth import (
+    create_access_token,
+    get_password_hash,
+    verify_password,
+    get_current_user,
+    get_current_admin,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+)
 from .schemas import (
+    AdminFixItUpdate,
+    AdminMenuUpdate,
+    AdminParcelUpdate,
+    AuthResponse,
+    AuthUser,
     BunkyChatRequest,
     BunkyChatResponse,
     DashboardSummary,
     FixItCreateRequest,
     FixItTicket,
+    LoginRequest,
+    MealRateRequest,
+    MealRatingItem,
+    MealRatingsResponse,
     MessMateSkipRequest,
     MessMateSkipResponse,
     MessMateUnskipRequest,
@@ -30,6 +49,7 @@ from .schemas import (
     ParcelCreateRequest,
     ParcelItem,
     ParcelPickupRequest,
+    RegisterRequest,
     RoomTabCreateExpenseRequest,
     RoomTabExpense,
     RoomTabSummary,
@@ -40,22 +60,29 @@ from .services import (
     create_parcel,
     create_roomtab_expense,
     get_dashboard_summary,
+    get_meal_ratings,
     get_messmate_schedule,
     get_roomtab_summary,
     list_fixit_tickets,
     list_parcels,
     list_activity_since,
     pickup_parcel,
+    rate_meal,
     route_command,
     skip_meal,
     unskip_meal,
+    update_fixit_ticket,
+    update_parcel_admin,
+    update_weekly_menu,
 )
+
+from datetime import timedelta
 
 
 def _parse_allowed_origins() -> list[str]:
     configured = os.getenv(
         "HOSTELOS_ALLOWED_ORIGINS",
-        "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001",
+        "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,http://localhost:7860,http://127.0.0.1:7860,https://*.hf.space",
     )
     origins = [origin.strip() for origin in configured.split(",") if origin.strip()]
     return origins or ["*"]
@@ -152,6 +179,8 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     )
 
 
+# ── Health ────────────────────────────────────────────────────
+
 @app.get("/health")
 def health() -> dict[str, object]:
     db_file = Path(DB_PATH)
@@ -164,6 +193,72 @@ def health() -> dict[str, object]:
         "db_exists": db_file.exists(),
     }
 
+
+# ── Auth ──────────────────────────────────────────────────────
+
+@app.post("/api/auth/register", response_model=AuthResponse)
+def register(payload: RegisterRequest):
+    with get_connection() as connection:
+        existing = connection.execute(
+            "SELECT id FROM users WHERE username = ?", (payload.username,)
+        ).fetchone()
+        if existing:
+            raise HTTPException(status_code=400, detail="Username already taken")
+
+        user_id = uuid4().hex[:16]
+        hashed = get_password_hash(payload.password)
+        connection.execute(
+            "INSERT INTO users (id, name, username, password_hash, role) VALUES (?, ?, ?, ?, ?)",
+            (user_id, payload.name, payload.username, hashed, "student"),
+        )
+        connection.commit()
+
+    token = create_access_token(
+        data={"sub": user_id, "role": "student"},
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+    return AuthResponse(
+        access_token=token,
+        user=AuthUser(id=user_id, name=payload.name, username=payload.username, role="student"),
+    )
+
+
+@app.post("/api/auth/login", response_model=AuthResponse)
+def login(payload: LoginRequest):
+    with get_connection() as connection:
+        user = connection.execute(
+            "SELECT id, name, username, password_hash, role FROM users WHERE username = ?",
+            (payload.username,),
+        ).fetchone()
+
+    if user is None:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+
+    password_hash = user["password_hash"] or ""
+    if not password_hash or not verify_password(payload.password, password_hash):
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+
+    token = create_access_token(
+        data={"sub": user["id"], "role": user["role"]},
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+    return AuthResponse(
+        access_token=token,
+        user=AuthUser(id=user["id"], name=user["name"], username=user["username"], role=user["role"]),
+    )
+
+
+@app.get("/api/auth/me")
+def auth_me(current_user: dict = Depends(get_current_user)):
+    return AuthUser(
+        id=current_user["id"],
+        name=current_user["name"],
+        username=current_user["username"],
+        role=current_user["role"],
+    )
+
+
+# ── Dashboard ─────────────────────────────────────────────────
 
 @app.get("/api/dashboard/summary", response_model=DashboardSummary)
 def dashboard_summary(request: Request) -> DashboardSummary:
@@ -201,6 +296,8 @@ async def dashboard_activity_stream(request: Request) -> StreamingResponse:
     )
 
 
+# ── Bunky Chat ────────────────────────────────────────────────
+
 @app.post("/api/bunky/chat", response_model=BunkyChatResponse)
 def bunky_chat(payload: BunkyChatRequest, request: Request) -> BunkyChatResponse:
     is_limited, retry_after = _is_chat_rate_limited(request.state.user_id)
@@ -214,6 +311,8 @@ def bunky_chat(payload: BunkyChatRequest, request: Request) -> BunkyChatResponse
     intent, tool_name, message = route_command(payload.command, user_id=request.state.user_id)
     return BunkyChatResponse(intent=intent, result=ToolResult(tool=tool_name, message=message))
 
+
+# ── MessMate ──────────────────────────────────────────────────
 
 @app.get("/api/messmate/menu", response_model=MessMateResponse)
 def messmate_menu(request: Request) -> MessMateResponse:
@@ -238,6 +337,23 @@ def messmate_unskip(payload: MessMateUnskipRequest, request: Request) -> MessMat
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@app.post("/api/messmate/rate", response_model=MealRatingItem)
+def messmate_rate(payload: MealRateRequest, request: Request) -> MealRatingItem:
+    try:
+        result = rate_meal(payload.meal, payload.rating, payload.date, user_id=request.state.user_id)
+        return MealRatingItem(**result)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/messmate/ratings", response_model=MealRatingsResponse)
+def messmate_ratings(request: Request) -> MealRatingsResponse:
+    ratings = get_meal_ratings(user_id=request.state.user_id)
+    return MealRatingsResponse(ratings=[MealRatingItem(**r) for r in ratings])
+
+
+# ── FixIt ─────────────────────────────────────────────────────
+
 @app.get("/api/fixit/tickets", response_model=list[FixItTicket])
 def get_fixit_tickets() -> list[FixItTicket]:
     return [FixItTicket(**ticket) for ticket in list_fixit_tickets()]
@@ -250,6 +366,8 @@ def post_fixit_ticket(payload: FixItCreateRequest, request: Request) -> FixItTic
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+
+# ── RoomTab ───────────────────────────────────────────────────
 
 @app.get("/api/roomtab/summary", response_model=RoomTabSummary)
 def roomtab_summary() -> RoomTabSummary:
@@ -270,6 +388,8 @@ def roomtab_add_expense(payload: RoomTabCreateExpenseRequest, request: Request) 
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+
+# ── ParcelPing ────────────────────────────────────────────────
 
 @app.get("/api/parcelping/parcels", response_model=list[ParcelItem])
 def parcelping_list() -> list[ParcelItem]:
@@ -298,3 +418,27 @@ def parcelping_pickup(payload: ParcelPickupRequest, request: Request) -> ParcelI
     if parcel is None:
         raise HTTPException(status_code=404, detail=f"Parcel '{payload.id}' not found")
     return ParcelItem(**parcel)
+
+
+# ── Admin Routes ──────────────────────────────────────────────
+
+@app.patch("/api/admin/fixit/{ticket_id}", response_model=FixItTicket)
+def admin_update_fixit(ticket_id: str, payload: AdminFixItUpdate, current_user: dict = Depends(get_current_admin)):
+    result = update_fixit_ticket(ticket_id, status=payload.status, assignee=payload.assignee, eta=payload.eta)
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"Ticket '{ticket_id}' not found")
+    return FixItTicket(**result)
+
+
+@app.patch("/api/admin/parcel/{parcel_id}", response_model=ParcelItem)
+def admin_update_parcel(parcel_id: str, payload: AdminParcelUpdate, current_user: dict = Depends(get_current_admin)):
+    result = update_parcel_admin(parcel_id, status=payload.status, eta=payload.eta)
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"Parcel '{parcel_id}' not found")
+    return ParcelItem(**result)
+
+
+@app.put("/api/admin/menu")
+def admin_update_menu(payload: AdminMenuUpdate, current_user: dict = Depends(get_current_admin)):
+    update_weekly_menu(payload.week)
+    return {"status": "ok", "message": "Menu updated successfully"}

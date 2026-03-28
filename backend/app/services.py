@@ -588,6 +588,112 @@ def parcel_status(_: str, user_id: str = "default_user") -> str:
     return message
 
 
+def update_fixit_ticket(ticket_id: str, status: str | None = None, assignee: str | None = None, eta: str | None = None) -> dict[str, Any] | None:
+    with get_connection() as connection:
+        row = connection.execute("SELECT id, title, assignee, status, eta FROM fixit_tickets WHERE id = ?", (ticket_id,)).fetchone()
+        if row is None:
+            return None
+
+        new_status = status if status else row["status"]
+        new_assignee = assignee if assignee else row["assignee"]
+        new_eta = eta if eta else row["eta"]
+
+        connection.execute(
+            "UPDATE fixit_tickets SET status = ?, assignee = ?, eta = ? WHERE id = ?",
+            (new_status, new_assignee, new_eta, ticket_id),
+        )
+        connection.commit()
+
+    return {"id": ticket_id, "title": row["title"], "assignee": new_assignee, "status": new_status, "eta": new_eta}
+
+
+def update_parcel_admin(parcel_id: str, status: str | None = None, eta: str | None = None) -> dict[str, Any] | None:
+    with get_connection() as connection:
+        row = connection.execute("SELECT id, vendor, location, status, eta, picked_up FROM parcels WHERE id = ?", (parcel_id,)).fetchone()
+        if row is None:
+            return None
+
+        new_status = status if status else row["status"]
+        new_eta = eta if eta else row["eta"]
+
+        connection.execute(
+            "UPDATE parcels SET status = ?, eta = ?, updated_at = datetime('now') WHERE id = ?",
+            (new_status, new_eta, parcel_id),
+        )
+        connection.commit()
+
+    return {"id": parcel_id, "vendor": row["vendor"], "location": row["location"], "status": new_status, "eta": new_eta, "picked_up": bool(row["picked_up"])}
+
+
+def update_weekly_menu(week_data: list[dict[str, Any]]) -> None:
+    global MESSMATE_WEEKLY_MENU
+    MESSMATE_WEEKLY_MENU = week_data
+
+
+def rate_meal(meal: str, rating: int, date_value: str | None = None, user_id: str = "default_user") -> dict[str, Any]:
+    clean_meal = meal.strip()
+    if not _meal_exists(clean_meal.lower()):
+        raise ValueError("Meal must be one of: Breakfast, Lunch, Dinner")
+    if rating < 1 or rating > 5:
+        raise ValueError("Rating must be between 1 and 5")
+
+    if date_value is None or not date_value.strip():
+        selected_date = datetime_date.today().isoformat()
+    else:
+        selected_date = date_value.strip()
+
+    with get_connection() as connection:
+        connection.execute(
+            "INSERT OR REPLACE INTO meal_ratings (date, meal, user_id, rating, created_at) VALUES (?, ?, ?, ?, datetime('now'))",
+            (selected_date, clean_meal.title(), user_id, rating),
+        )
+        connection.commit()
+
+        stats = connection.execute(
+            "SELECT AVG(rating) as avg_rating, COUNT(*) as total FROM meal_ratings WHERE date = ? AND meal = ?",
+            (selected_date, clean_meal.title()),
+        ).fetchone()
+
+    _add_activity(f"MessMate: {clean_meal.title()} rated {rating}/5 for {selected_date}.", user_id)
+    return {
+        "meal": clean_meal.title(),
+        "date": selected_date,
+        "rating": rating,
+        "average": round(float(stats["avg_rating"] or 0), 1),
+        "total_ratings": int(stats["total"] or 0),
+    }
+
+
+def get_meal_ratings(date_value: str | None = None, user_id: str = "default_user") -> list[dict[str, Any]]:
+    if date_value is None or not date_value.strip():
+        selected_date = datetime_date.today().isoformat()
+    else:
+        selected_date = date_value.strip()
+
+    results = []
+    for meal_name in ["Breakfast", "Lunch", "Dinner"]:
+        with get_connection() as connection:
+            stats = connection.execute(
+                "SELECT AVG(rating) as avg_rating, COUNT(*) as total FROM meal_ratings WHERE date = ? AND meal = ?",
+                (selected_date, meal_name),
+            ).fetchone()
+
+            user_rating = connection.execute(
+                "SELECT rating FROM meal_ratings WHERE date = ? AND meal = ? AND user_id = ?",
+                (selected_date, meal_name, user_id),
+            ).fetchone()
+
+        results.append({
+            "meal": meal_name,
+            "date": selected_date,
+            "rating": int(user_rating["rating"]) if user_rating else 0,
+            "average": round(float(stats["avg_rating"] or 0), 1),
+            "total_ratings": int(stats["total"] or 0),
+        })
+
+    return results
+
+
 def route_command(command: str, user_id: str = "default_user") -> tuple[str, str, str]:
     normalized = command.strip().lower()
     if not normalized:

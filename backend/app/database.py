@@ -5,7 +5,7 @@ import sqlite3
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DB_PATH = Path(os.getenv("HOSTELOS_DB_PATH", BASE_DIR / "hostelos.db"))
+DB_PATH = Path(os.getenv("HOSTELOS_DB_PATH", str(BASE_DIR / "hostelos.db")))
 MIGRATIONS_DIR = BASE_DIR / "migrations"
 
 
@@ -20,7 +20,13 @@ def apply_migrations() -> None:
 
     with get_connection() as connection:
         for migration in sorted(MIGRATIONS_DIR.glob("*.sql")):
-            connection.executescript(migration.read_text(encoding="utf-8"))
+            try:
+                connection.executescript(migration.read_text(encoding="utf-8"))
+            except sqlite3.OperationalError as e:
+                if "duplicate column name" in str(e).lower():
+                    print(f"Skipping {migration.name} (already applied: {e})")
+                else:
+                    raise
 
 
 def init_database() -> None:

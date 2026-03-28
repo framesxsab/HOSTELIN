@@ -90,3 +90,15 @@ export type ParcelItem = {
   eta: string;
   picked_up: boolean;
 };
+
+export type MealRating = {
+  meal: string;
+  date: string;
+  rating: number;
+  average: number;
+  total_ratings: number;
+};
+
+export type MealRatingsResponse = {
+  ratings: MealRating[];
+};

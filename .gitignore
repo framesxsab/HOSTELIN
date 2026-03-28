@@ -19,3 +19,7 @@ out/
 .DS_Store
 Thumbs.db
 .vscode/
+
+# Environment
+.env.local
+.env*.local
