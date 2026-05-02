@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import math
+import os
 import re
 from datetime import date as datetime_date
 from typing import Any
+from google import genai
 
 from .database import get_connection
 
@@ -697,23 +699,100 @@ def get_meal_ratings(date_value: str | None = None, user_id: str = "default_user
 def route_command(command: str, user_id: str = "default_user") -> tuple[str, str, str]:
     normalized = command.strip().lower()
     if not normalized:
-        fallback = "Empty command. Try mess status, skip lunch, fixit for <issue>, roomtab add <amount>, or parcel status."
+        fallback = "Empty command. Try asking me something like 'skip my lunch', 'report a broken fan', or 'did my parcel arrive?'"
         _add_activity("Bunky: empty command received.", user_id)
         return "unknown", "unknown", fallback
 
-    if _has_keyword_match(normalized, ["unskip", "undo"]) and _has_keyword_match(normalized, ["meal", "breakfast", "lunch", "dinner"]):
-        return "mess_unskip_meal", "mess_unskip_meal", mess_unskip_meal(command, user_id=user_id)
-    if _has_keyword_match(normalized, ["skip", "skipping"]) and _has_keyword_match(normalized, ["meal", "breakfast", "lunch", "dinner"]):
-        return "mess_skip_meal", "mess_skip_meal", mess_skip_meal(command, user_id=user_id)
-    if _has_keyword_match(normalized, ["mess", "meal", "menu"]):
-        return "mess_status", "mess_status", mess_status(command, user_id=user_id)
-    if _has_keyword_match(normalized, ["fixit", "ticket", "repair", "maintenance"]):
-        return "fixit_ticket_create", "fixit_ticket_create", fixit_ticket_create(command, user_id=user_id)
-    if _has_keyword_match(normalized, ["roomtab", "expense", "split", "pay"]):
-        return "roomtab_log_expense", "roomtab_log_expense", roomtab_log_expense(command, user_id=user_id)
-    if _has_keyword_match(normalized, ["parcel", "package", "delivery"]):
-        return "parcel_status", "parcel_status", parcel_status(command, user_id=user_id)
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return "error", "error", "GEMINI_API_KEY is not set in your environment file. Bunky AI is offline."
 
-    fallback = "Unknown intent. Try commands for mess, skip meal, fixit, roomtab, or parcel."
-    _add_activity("Bunky: unknown command received.", user_id)
-    return "unknown", "unknown", fallback
+    # --- Tool Definitions ---
+    def check_mess_status() -> str:
+        """Check the status of the hostel mess and today's menu."""
+        return mess_status("", user_id=user_id)
+        
+    def skip_mess_meal(meal: str) -> str:
+        """Skip a specific meal (Breakfast, Lunch, or Dinner) for today. Call this if user asks to cancel a meal."""
+        try:
+            return skip_meal(meal=meal, user_id=user_id)["message"]
+        except Exception as e:
+            return str(e)
+            
+    def unskip_mess_meal(meal: str) -> str:
+        """Undo a skipped meal / unskip a meal (Breakfast, Lunch, or Dinner) for today."""
+        try:
+            return unskip_meal(meal=meal, user_id=user_id)["message"]
+        except Exception as e:
+            return str(e)
+            
+    def report_maintenance_issue(issue_description: str) -> str:
+        """Report a maintenance issue or create a repair ticket (FixIt). Provide a clear description."""
+        try:
+            ticket = create_fixit_ticket(title=issue_description, user_id=user_id)
+            return f"Created ticket {ticket['id']} for '{issue_description}'. Status: {ticket['status']}."
+        except Exception as e:
+            return str(e)
+            
+    def log_shared_expense(title: str, amount: float) -> str:
+        """Log a shared group expense (RoomTab) with a title and the exact money amount."""
+        try:
+            create_roomtab_expense(title=title, payer="Self", total=amount, share=-amount, user_id=user_id)
+            return f"Logged expense {_format_currency(amount)} for '{title}'. Updated balance: {_format_currency(_net_balance())}"
+        except Exception as e:
+            return str(e)
+            
+    def check_parcel_status() -> str:
+        """Check if any parcels or packages have arrived at the gate for the user."""
+        return parcel_status("", user_id=user_id)
+
+    tools = [
+        check_mess_status,
+        skip_mess_meal, 
+        unskip_mess_meal, 
+        report_maintenance_issue,
+        log_shared_expense,
+        check_parcel_status
+    ]
+
+    try:
+        client = genai.Client(api_key=api_key)
+        
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=command,
+            config=genai.types.GenerateContentConfig(
+                tools=tools,
+                system_instruction="You are Bunky, the HostelOS AI assistant. You help students manage their hostel life. If a user asks to do something supported by your tools, use the tools to execute their intent. Be exceptionally brief and friendly in your replies.",
+            )
+        )
+        
+        if response.function_calls:
+            fc = response.function_calls[0]
+            tool_name = fc.name
+            args = fc.args
+            
+            tool_dict = {
+                "check_mess_status": check_mess_status,
+                "skip_mess_meal": skip_mess_meal,
+                "unskip_mess_meal": unskip_mess_meal,
+                "report_maintenance_issue": report_maintenance_issue,
+                "log_shared_expense": log_shared_expense,
+                "check_parcel_status": check_parcel_status,
+            }
+            
+            if tool_name in tool_dict:
+                tool_func = tool_dict[tool_name]
+                try:
+                    result = tool_func(**args)
+                    return tool_name, tool_name, str(result)
+                except Exception as e:
+                    return tool_name, tool_name, f"Failed to execute {tool_name}: {e}"
+                    
+        _add_activity("Bunky: chat session.", user_id)
+        return "chat", "chat", response.text or "I wasn't sure how to handle that."
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return "error", "error", f"AI integration error: {str(e)}"

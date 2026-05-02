@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+from unittest.mock import patch, MagicMock
 
 # Configure isolated database path before importing app modules.
 _tmp_db = tempfile.NamedTemporaryFile(prefix="hostelos-test-", suffix=".db", delete=False)
@@ -35,17 +36,19 @@ class BackendSmokeTests(unittest.TestCase):
         self.assertIn("db_path", payload)
         self.assertIn("db_exists", payload)
 
-    def test_skip_then_unskip_routing(self):
-        skip_intent, skip_tool, skip_message = route_command("skip lunch")
-        self.assertEqual(skip_intent, "mess_skip_meal")
-        self.assertEqual(skip_tool, "mess_skip_meal")
-        self.assertIsInstance(skip_message, str)
-
-        unskip_intent, unskip_tool, unskip_message = route_command("unskip lunch")
-        self.assertEqual(unskip_intent, "mess_unskip_meal")
-        self.assertEqual(unskip_tool, "mess_unskip_meal")
-        self.assertIsInstance(unskip_message, str)
-
+    def test_missing_api_key_fallback(self):
+        # Temporarily unset GEMINI_API_KEY
+        original_key = os.environ.get("GEMINI_API_KEY")
+        if "GEMINI_API_KEY" in os.environ:
+            del os.environ["GEMINI_API_KEY"]
+            
+        try:
+            intent, tool, message = route_command("skip lunch")
+            self.assertEqual(intent, "error")
+            self.assertTrue("GEMINI_API_KEY is not set" in message)
+        finally:
+            if original_key is not None:
+                os.environ["GEMINI_API_KEY"] = original_key
     def test_messmate_schedule_shape(self):
         payload = get_messmate_schedule()
         self.assertEqual(payload.get("period"), "16/03/26 To 22/03/26")

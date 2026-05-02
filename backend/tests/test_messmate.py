@@ -8,13 +8,13 @@ _tmp_db.close()
 os.environ["HOSTELOS_DB_PATH"] = _tmp_db.name
 
 from app.database import init_database
-from app.services import get_messmate_schedule, skip_meal, unskip_meal, init_menu_seeder
+from app.services import get_messmate_schedule, skip_meal, unskip_meal
 
 class MessMateTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         init_database()
-        init_menu_seeder()
+        pass
 
     @classmethod
     def tearDownClass(cls):
